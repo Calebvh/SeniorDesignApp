@@ -21,10 +21,12 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
+import static com.example.caleb.seniordesignapp.R.id.connect_Btn;
+
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
     TextView Message_TextView;
     Button Bluetooth_Btn;
-    Button Connect_Btn;
+    Button Find_Btn;
     BluetoothAdapter myBluetoothAdapter;
     BluetoothDevice myBluetoothDevice;
     private static final String TAG = MainActivity.class.getName();
@@ -159,7 +161,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         Message_TextView = (TextView)findViewById(R.id.TextBox);
         Bluetooth_Btn = (Button)findViewById(R.id.BluetoothBtn);
-        Connect_Btn = (Button)findViewById(R.id.connect_Btn);
+        Find_Btn = (Button) findViewById(R.id.Find_Btn);
         myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         lvNewDevices = (ListView) findViewById(R.id._listView);
 
@@ -175,15 +177,42 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             public void onClick(View v) {
                 if(!myBluetoothAdapter.isEnabled()){
                     TurnOn();
-                    BeginDiscovery();
                 }
                 else{
                     TurnOff();
                 }
             }
+
+
         });
 
+        Find_Btn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "btnDiscover: Looking for unpaired devices.");
 
+                if(myBluetoothAdapter.isDiscovering()){
+                    myBluetoothAdapter.cancelDiscovery();
+                    Log.d(TAG, "btnDiscover: Canceling discovery.");
+
+                    //check BT permissions in manifest
+                    checkBTPermissions();
+
+                    myBluetoothAdapter.startDiscovery();
+                    IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                    registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+                }
+                if(!myBluetoothAdapter.isDiscovering()){
+
+                    //check BT permissions in manifest
+                    checkBTPermissions();
+
+                    myBluetoothAdapter.startDiscovery();
+                    IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                    registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+                }
+            }
+        });
         //Green #78AB46
     }
 
@@ -202,32 +231,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         IntentFilter BTIntent = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(myBroadcastReceiver1, BTIntent);
 
-        //Set Adapter to Discoverable
-        Intent enableBTDiscoverable =new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
-        enableBTDiscoverable.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
-        startActivity(enableBTDiscoverable);
+        Intent discoverableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE);
+        discoverableIntent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 300);
+        startActivity(discoverableIntent);
 
-        IntentFilter BTDiscoverable = new IntentFilter(BluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
-        registerReceiver(myBroadcastReceiver2, BTDiscoverable);
+        IntentFilter intentFilter = new IntentFilter(myBluetoothAdapter.ACTION_SCAN_MODE_CHANGED);
+        registerReceiver(myBroadcastReceiver2,intentFilter);
 
-
-    }
-
-    public void BeginDiscovery(){
-        if(myBluetoothAdapter.isDiscovering()){
-            myBluetoothAdapter.cancelDiscovery();
-            Log.d(TAG, "btnDiscover: Canceling discovery.");
-
-            myBluetoothAdapter.startDiscovery();
-            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
-        }
-        if(!myBluetoothAdapter.isDiscovering()){
-
-            myBluetoothAdapter.startDiscovery();
-            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
-            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
-        }
     }
 
     public void TurnOff(){
@@ -239,8 +249,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
+
     @Override
-    public void onItemClick(AdapterView<?> parent, View view, int i, long id) {
+    public void onItemClick(AdapterView<?> parent, View view, int i, long l) {
         //first cancel discovery because its very memory intensive.
         myBluetoothAdapter.cancelDiscovery();
 
@@ -258,6 +269,19 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             BluetoothDevices.get(i).createBond();
         }
 
+    }
+
+    private void checkBTPermissions() {
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP){
+            int permissionCheck = this.checkSelfPermission("Manifest.permission.ACCESS_FINE_LOCATION");
+            permissionCheck += this.checkSelfPermission("Manifest.permission.ACCESS_COARSE_LOCATION");
+            if (permissionCheck != 0) {
+
+                this.requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION}, 1001); //Any number
+            }
+        }else{
+            Log.d(TAG, "checkBTPermissions: No need to check permissions. SDK version < LOLLIPOP.");
+        }
     }
 
 }
