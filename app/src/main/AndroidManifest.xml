@@ -2,12 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.caleb.seniordesignapp">
 
-    <!-- <uses-sdk android:minSdkVersion="18"
-        android:targetSdkVersion="18"/>
-     Declare this required feature if you want to make the app available to BLE-capable
+     <!--Declare this required feature if you want to make the app available to BLE-capable
     devices only.  If you want to make your app available to devices that don't support BLE,
     you should omit this in the manifest.  Instead, determine BLE capability by using
-    PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE) -->
+    PackageManager.hasSystemFeature(FEATURE_BLUETOOTH_LE)-->
 
     <uses-feature android:name="android.hardware.bluetooth" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
@@ -15,6 +13,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.BLUETOOTH_PRIVILEGED" />
+
 
 
     <application

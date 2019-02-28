@@ -3,6 +3,7 @@ package com.example.caleb.seniordesignapp;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.content.IntentFilter;
 import android.graphics.Color;
 import android.nfc.Tag;
 import android.os.Build;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,6 +20,7 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -29,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     Button Find_Btn;
     BluetoothAdapter myBluetoothAdapter;
     BluetoothDevice myBluetoothDevice;
+
     private static final String TAG = MainActivity.class.getName();
 
     DeviceListAdapter mDeviceListAdapter;
@@ -124,35 +128,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
-    /**
-     * Broadcast Receiver that detects bond state changes (Pairing status changes)
-     */
-    private final BroadcastReceiver mBroadcastReceiver4 = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            final String action = intent.getAction();
-
-            if(action.equals(BluetoothDevice.ACTION_BOND_STATE_CHANGED)){
-                BluetoothDevice mDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                //3 cases:
-                //case1: bonded already
-                if (mDevice.getBondState() == BluetoothDevice.BOND_BONDED){
-                    Log.d(TAG, "BroadcastReceiver: BOND_BONDED.");
-                    //inside BroadcastReceiver4
-                    myBluetoothDevice = mDevice;
-                }
-                //case2: creating a bone
-                if (mDevice.getBondState() == BluetoothDevice.BOND_BONDING) {
-                    Log.d(TAG, "BroadcastReceiver: BOND_BONDING.");
-                }
-                //case3: breaking a bond
-                if (mDevice.getBondState() == BluetoothDevice.BOND_NONE) {
-                    Log.d(TAG, "BroadcastReceiver: BOND_NONE.");
-                }
-            }
-        }
-    };
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,15 +137,25 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         Message_TextView = (TextView)findViewById(R.id.TextBox);
         Bluetooth_Btn = (Button)findViewById(R.id.BluetoothBtn);
         Find_Btn = (Button) findViewById(R.id.Find_Btn);
-        myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+        // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
+        // BluetoothAdapter through BluetoothManager.
+        final BluetoothManager bluetoothManager =
+                (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        myBluetoothAdapter = bluetoothManager.getAdapter();
+
+        //myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         lvNewDevices = (ListView) findViewById(R.id._listView);
 
-        //Broadcasts when bond state changes (ie:pairing)
-        IntentFilter filter = new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
 
+        // Checks if Bluetooth is supported on the device.
+        if (myBluetoothAdapter == null) {
+            Toast.makeText(this, "Error: Bluetooth not Supported", Toast.LENGTH_SHORT).show();
+            finish();
+            return;
+        }
         lvNewDevices.setOnItemClickListener(MainActivity.this);
 
-        registerReceiver(mBroadcastReceiver4, filter);
 
         Bluetooth_Btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -182,8 +167,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                     TurnOff();
                 }
             }
-
-
         });
 
         Find_Btn.setOnClickListener(new View.OnClickListener() {
