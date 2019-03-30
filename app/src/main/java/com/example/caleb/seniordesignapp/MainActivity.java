@@ -1,6 +1,7 @@
 package com.example.caleb.seniordesignapp;
 
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
@@ -24,8 +25,7 @@ import android.widget.Toast;
 
 import java.util.ArrayList;
 
-import static com.example.caleb.seniordesignapp.R.id.connect_Btn;
-
+@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
     TextView Message_TextView;
     Button Bluetooth_Btn;
@@ -120,8 +120,23 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             if (action.equals(BluetoothDevice.ACTION_FOUND)){
                 BluetoothDevice device = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
-                BluetoothDevices.add(device);
-                Log.d(TAG, "onReceive: " + device.getName() + ": " + device.getAddress());
+                if(device.getName()!= null && device.getName().equals("SABR")){
+                    BluetoothDevices.add(device);
+
+                    Log.d(TAG, "SABR Found: " + device.getName() + ": " + device.getAddress());
+
+                    final Intent intent1 = new Intent(context, DevicePairing.class);
+                    intent1.putExtra(DevicePairing.EXTRAS_DEVICE_NAME, device.getName());
+                    intent1.putExtra(DevicePairing.EXTRAS_DEVICE_ADDRESS, device.getAddress());
+
+
+                    Log.d(TAG, "onItemClick: deviceName = " + device.getName());
+                    Log.d(TAG, "onItemClick: deviceAddress = " + device.getName());
+                    startActivity(intent1);
+
+
+                }
+
                 mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, BluetoothDevices);
                 lvNewDevices.setAdapter(mDeviceListAdapter);
             }
@@ -134,7 +149,6 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Message_TextView = (TextView)findViewById(R.id.TextBox);
         Bluetooth_Btn = (Button)findViewById(R.id.BluetoothBtn);
         Find_Btn = (Button) findViewById(R.id.Find_Btn);
 
@@ -242,8 +256,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         String deviceName = BluetoothDevices.get(i).getName();
         String deviceAddress = BluetoothDevices.get(i).getAddress();
 
+        final Intent intent = new Intent(this, DevicePairing.class);
+        intent.putExtra(DevicePairing.EXTRAS_DEVICE_NAME, BluetoothDevices.get(i).getName());
+        intent.putExtra(DevicePairing.EXTRAS_DEVICE_ADDRESS, BluetoothDevices.get(i).getAddress());
+
+
         Log.d(TAG, "onItemClick: deviceName = " + deviceName);
         Log.d(TAG, "onItemClick: deviceAddress = " + deviceAddress);
+        startActivity(intent);
 
         //create the bond.
         //NOTE: Requires API 17+? I think this is JellyBean

@@ -15,7 +15,7 @@ public class GATTAttributes {
         attributes.put("0000ffe0-0000-1000-8000-00805f9b34fb", "HM-11 Service"); //Overarching Identifier that encompasses the HM-11 characteristic named above
         attributes.put("0000180a-0000-1000-8000-00805f9b34fb", "Device Information Service");
         // Sample Characteristics.
-        attributes.put(HM11, "Heart Rate Measurement");
+        attributes.put(HM11, "HM-11 Message");
         attributes.put("00002a29-0000-1000-8000-00805f9b34fb", "Manufacturer Name String"); //Function of the "Device Information Service
     }
 
