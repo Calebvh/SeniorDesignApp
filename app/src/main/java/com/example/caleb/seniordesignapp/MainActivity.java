@@ -10,6 +10,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Handler;
@@ -211,6 +213,24 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         });
         //Green #78AB46
+
+        final MediaPlayer AlarmMediaPLayer = MediaPlayer.create(this, R.raw.alarm_sound_2);
+        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 20, 0);
+
+        final Button PlayButton = (Button) this.findViewById(R.id.connect_Btn);
+        PlayButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //for(int x = 0; x<5; x++ ){
+                AlarmMediaPLayer.start();
+
+                //}
+
+            }
+        });
+
+
     }
 
 
