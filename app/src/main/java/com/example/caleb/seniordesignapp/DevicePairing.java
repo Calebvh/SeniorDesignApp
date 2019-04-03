@@ -2,6 +2,7 @@ package com.example.caleb.seniordesignapp;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.Service;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattService;
 import android.content.BroadcastReceiver;

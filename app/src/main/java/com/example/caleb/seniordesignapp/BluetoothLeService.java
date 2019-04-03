@@ -41,7 +41,6 @@ import java.util.UUID;
  */
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
-
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
@@ -231,6 +230,8 @@ public class BluetoothLeService extends Service {
      */
     public boolean connect(final String address) {
         if (mBluetoothAdapter == null || address == null) {
+            Log.w(TAG, "mBluetoothAdapter:   " + mBluetoothAdapter);
+            Log.w(TAG, "mBluetooth Address:  " + address);
             Log.w(TAG, "BluetoothAdapter not initialized or unspecified address.");
             return false;
         }
