@@ -33,19 +33,24 @@ import android.widget.ListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
-public class MainActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+public class MainActivity extends AppCompatActivity{
 
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
+    private long time;
+    private Character lastMsg;
+    private Character lastMsg_tmp;
     private TextView mConnectionState;
     private TextView mDataField;
     private String mDeviceName;
@@ -90,6 +95,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
     };
 
+
     // Handles various events fired by the Service.
     // ACTION_GATT_CONNECTED: connected to a GATT server.
     // ACTION_GATT_DISCONNECTED: disconnected from a GATT server.
@@ -99,15 +105,39 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
+            TimerTask timerTask = new TimerTask() {
+                @Override
+                public void run() {
+                    alarmFunction();
+                }
+            };
+
             final String action = intent.getAction();
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+
                 mConnected = true;
                 updateConnectionState("Connected");
+
+                stopService(new Intent(context, AlarmService.class));
+
                 invalidateOptionsMenu();
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
                 updateConnectionState("Disconnected");
                 invalidateOptionsMenu();
+
+                myBluetoothAdapter.cancelDiscovery();
+                checkBTPermissions();
+
+                myBluetoothAdapter.startDiscovery();
+                IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+
+                Timer t = new Timer();
+                t.schedule(timerTask, 8000);
+
+
                 clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
@@ -127,7 +157,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                char[] temp = intent.getStringExtra(BluetoothLeService.EXTRA_DATA).toCharArray();
 
+
+                lastMsg_tmp = temp[0];
+
+                if(lastMsg_tmp.equals('N') || lastMsg_tmp.equals('Y')){
+                    lastMsg = lastMsg_tmp;
+                }
+                Log.d(TAG,"LESERVICE DEBUG: " + BluetoothLeService.EXTRA_DATA);
+
+                displayData(lastMsg.toString());
                 //Echo back received data, with something inserted
                 final byte[] rxBytes = bluetoothGattCharacteristicHM_10.getValue();
                 final byte[] insertSomething = {(byte)'X'};
@@ -293,12 +333,12 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     private static final String TAG = MainActivity.class.getName();
 
-    DeviceListAdapter mDeviceListAdapter;
+    //DeviceListAdapter mDeviceListAdapter;
     ListView lvNewDevices;
     TextView MsgBox;
 
     /** ==============================================================================*/
-    public ArrayList<BluetoothDevice> BluetoothDevices = new ArrayList<>();
+    //public ArrayList<BluetoothDevice> BluetoothDevices = new ArrayList<>();
 
     /**
      * Broadcast Receiver for changes made to bluetooth states such as:
@@ -320,6 +360,28 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         break;
                     case BluetoothAdapter.STATE_ON:
                         Log.d(TAG, "mBroadcastReceiver1: STATE ON");
+
+                        if(myBluetoothAdapter.isDiscovering()){
+                            myBluetoothAdapter.cancelDiscovery();
+                            Log.d(TAG, "btnDiscover: Canceling discovery.");
+
+                            //check BT permissions in manifest
+                            checkBTPermissions();
+
+                            myBluetoothAdapter.startDiscovery();
+                            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+                        }
+                        if(!myBluetoothAdapter.isDiscovering()){
+
+                            //check BT permissions in manifest
+                            checkBTPermissions();
+
+                            myBluetoothAdapter.startDiscovery();
+                            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+                        }
+
                         break;
                     case BluetoothAdapter.STATE_TURNING_ON:
                         Log.d(TAG, "mBroadcastReceiver1: STATE TURNING ON");
@@ -380,8 +442,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
             if (action.equals(BluetoothDevice.ACTION_FOUND)){
                 BluetoothDevice device = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
-                if(device.getName()!= null && device.getName().equals("SABR")){
-                    BluetoothDevices.add(device);
+                Log.d(TAG, "DEVICE NAME: " + device.getAddress());
+                if(device.getName()!= null && device.getAddress().equals("40:BD:32:94:AD:28")){
+                    //BluetoothDevices.add(device);
 
                     Log.d(TAG, "SABR Found: " + device.getName() + ": " + device.getAddress());
 
@@ -403,8 +466,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
                 }
 
-                mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, BluetoothDevices);
-                lvNewDevices.setAdapter(mDeviceListAdapter);
+                //mDeviceListAdapter = new DeviceListAdapter(context, R.layout.device_adapter_view, BluetoothDevices);
+                //lvNewDevices.setAdapter(mDeviceListAdapter);
             }
         }
     };
@@ -415,6 +478,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        lastMsg = 'N';
         Bluetooth_Btn = (Button)findViewById(R.id.BluetoothBtn);
         Find_Btn = (Button) findViewById(R.id.Find_Btn);
 
@@ -425,10 +489,9 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         myBluetoothAdapter = bluetoothManager.getAdapter();
 
         //myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        lvNewDevices = (ListView) findViewById(R.id._listView);
+        //lvNewDevices = (ListView) findViewById(R.id._listView);
         MsgBox = (TextView) findViewById(R.id.MsgBox);
         mConnectionState = (TextView) findViewById(R.id.connect_box);
-
 
         // Checks if Bluetooth is supported on the device.
         if (myBluetoothAdapter == null) {
@@ -436,8 +499,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             finish();
             return;
         }
-        lvNewDevices.setOnItemClickListener(MainActivity.this);
+        //lvNewDevices.setOnItemClickListener(MainActivity.this);
 
+
+        if(myBluetoothAdapter.isEnabled()){
+            Bluetooth_Btn.setText("Bluetooth : ON");
+            Bluetooth_Btn.setBackgroundColor(Color.GREEN);
+        }
 
         Bluetooth_Btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -479,25 +547,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             }
         });
         //Green #78AB46
-
-        final MediaPlayer AlarmMediaPLayer = MediaPlayer.create(this, R.raw.alarm_sound_2);
-        AudioManager audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, 20, 0);
-
-        final Button PlayButton = (Button) this.findViewById(R.id.connect_Btn);
-        PlayButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //for(int x = 0; x<5; x++ ){
-                AlarmMediaPLayer.start();
-
-                //}
-
             }
-        });
-
-
-    }
 
 
     public void TurnOn(){
@@ -532,8 +582,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     }
 
+    public void alarmFunction(){
+        if(!mConnected && lastMsg.equals('Y')){
+            startService(new Intent(this, AlarmService.class));
+        }
+    }
 
-    @Override
+
+    /*@Override
     public void onItemClick(AdapterView<?> parent, View view, int i, long l) {
         //first cancel discovery because its very memory intensive.
         myBluetoothAdapter.cancelDiscovery();
@@ -558,7 +614,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
             BluetoothDevices.get(i).createBond();
         }
 
-    }
+    }*/
 
     private void checkBTPermissions() {
         if(Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP){
