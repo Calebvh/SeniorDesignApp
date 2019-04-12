@@ -2,6 +2,7 @@ package com.example.caleb.seniordesignapp;
 
 import android.Manifest;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGattCharacteristic;
@@ -16,6 +17,7 @@ import android.content.ServiceConnection;
 import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.nfc.Tag;
 import android.os.Build;
 import android.os.Handler;
@@ -29,6 +31,8 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ExpandableListView;
+import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
@@ -60,13 +64,20 @@ public class MainActivity extends AppCompatActivity{
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
 
+    private ImageView Buckled;
+    private ImageView Unbuckled;
+    private Button Reconnect;
+    private TextView PleaseRet_txtView;
+    private TextView IsConnected_txtView;
+    private TextView PairedTo_txtView;
+
     private BluetoothGattCharacteristic mGattCharacteristic1;
     private boolean mConnected = false;
+    private boolean alreadySetup = false;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private final String LIST_NAME = "NAME";
     private final String LIST_UUID = "UUID";
-
 
     private BluetoothGattCharacteristic bluetoothGattCharacteristicHM_10;
 
@@ -109,12 +120,29 @@ public class MainActivity extends AppCompatActivity{
             TimerTask timerTask = new TimerTask() {
                 @Override
                 public void run() {
-                    alarmFunction();
+                    ServiceHandler sh = new ServiceHandler();
+                    sh.run();
                 }
             };
 
             final String action = intent.getAction();
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
+                if(!alreadySetup) {
+                    setContentView(R.layout.activity_main2);
+                    Buckled = (ImageView) findViewById(R.id.imageView);
+                    Unbuckled = (ImageView) findViewById(R.id.imageView3);
+                    IsConnected_txtView = (TextView) findViewById(R.id.isConnected_txtview);
+                    Reconnect = (Button) findViewById(R.id.Reconnect_Btn);
+                    PleaseRet_txtView = (TextView) findViewById(R.id.pleasertn_alert);
+                    PairedTo_txtView = (TextView) findViewById(R.id.pairedto_txtView);
+                    alreadySetup = true;
+                }
+
+                PairedTo_txtView.setText("HM-11 Buckle");
+                PairedTo_txtView.setVisibility(View.VISIBLE);
+                Reconnect.setVisibility(View.INVISIBLE);
+                PleaseRet_txtView.setVisibility(View.INVISIBLE);
+                IsConnected_txtView.setText("Connected");
 
                 mConnected = true;
                 updateConnectionState("Connected");
@@ -134,9 +162,9 @@ public class MainActivity extends AppCompatActivity{
                 IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
                 registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
 
+
                 Timer t = new Timer();
                 t.schedule(timerTask, 8000);
-
 
                 clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
@@ -165,6 +193,15 @@ public class MainActivity extends AppCompatActivity{
                 if(lastMsg_tmp.equals('N') || lastMsg_tmp.equals('Y')){
                     lastMsg = lastMsg_tmp;
                 }
+
+                if(lastMsg.equals('N')){
+                    Unbuckled.setVisibility(View.VISIBLE);
+                    Buckled.setVisibility(View.INVISIBLE);
+                }else if(lastMsg.equals('Y')){
+                    Unbuckled.setVisibility(View.INVISIBLE);
+                    Buckled.setVisibility(View.VISIBLE);
+                }
+
                 Log.d(TAG,"LESERVICE DEBUG: " + BluetoothLeService.EXTRA_DATA);
 
                 displayData(lastMsg.toString());
@@ -229,7 +266,7 @@ public class MainActivity extends AppCompatActivity{
     public boolean onOptionsItemSelected(MenuItem item) {
         switch(item.getItemId()) {
             case R.id.menu_connect:
-                Log.d(TAG,"onOptionsItems Selected: I AM CONNECTING HERE BITCH");
+                Log.d(TAG,"onOptionsItems Selected: I AM CONNECTING HERE");
                 mBluetoothLeService.disconnect();
                 mBluetoothLeService.close();
                 mBluetoothLeService.stopSelf();
@@ -327,9 +364,10 @@ public class MainActivity extends AppCompatActivity{
 
 
     /** ==============================================================================*/
-    Button Bluetooth_Btn;
+    ImageButton Bluetooth_Btn;
     Button Find_Btn;
     BluetoothAdapter myBluetoothAdapter;
+    TextView StatusBox;
 
     private static final String TAG = MainActivity.class.getName();
 
@@ -360,7 +398,7 @@ public class MainActivity extends AppCompatActivity{
                         break;
                     case BluetoothAdapter.STATE_ON:
                         Log.d(TAG, "mBroadcastReceiver1: STATE ON");
-
+                        StatusBox.setText("Bluetooth is On...");
                         if(myBluetoothAdapter.isDiscovering()){
                             myBluetoothAdapter.cancelDiscovery();
                             Log.d(TAG, "btnDiscover: Canceling discovery.");
@@ -382,9 +420,15 @@ public class MainActivity extends AppCompatActivity{
                             registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
                         }
 
+                        StatusBox.setText("Searching for Buckle...");
+
                         break;
                     case BluetoothAdapter.STATE_TURNING_ON:
                         Log.d(TAG, "mBroadcastReceiver1: STATE TURNING ON");
+
+                        StatusBox.setVisibility(View.VISIBLE);
+                        StatusBox.setText("Turning on Bluetooth...");
+
                         break;
                 }
             }
@@ -444,6 +488,7 @@ public class MainActivity extends AppCompatActivity{
                 BluetoothDevice device = intent.getParcelableExtra (BluetoothDevice.EXTRA_DEVICE);
                 Log.d(TAG, "DEVICE NAME: " + device.getAddress());
                 if(device.getName()!= null && device.getAddress().equals("40:BD:32:94:AD:28")){
+                    StatusBox.setText("Buckle found, Attempting to Pair");
                     //BluetoothDevices.add(device);
 
                     Log.d(TAG, "SABR Found: " + device.getName() + ": " + device.getAddress());
@@ -476,10 +521,11 @@ public class MainActivity extends AppCompatActivity{
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main1);
 
         lastMsg = 'N';
-        Bluetooth_Btn = (Button)findViewById(R.id.BluetoothBtn);
+
+        Bluetooth_Btn = (ImageButton)findViewById(R.id.connect_image_button);
         Find_Btn = (Button) findViewById(R.id.Find_Btn);
 
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
@@ -491,6 +537,7 @@ public class MainActivity extends AppCompatActivity{
         //myBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         //lvNewDevices = (ListView) findViewById(R.id._listView);
         MsgBox = (TextView) findViewById(R.id.MsgBox);
+        StatusBox = (TextView) findViewById(R.id.Status_txtView);
         mConnectionState = (TextView) findViewById(R.id.connect_box);
 
         // Checks if Bluetooth is supported on the device.
@@ -502,10 +549,6 @@ public class MainActivity extends AppCompatActivity{
         //lvNewDevices.setOnItemClickListener(MainActivity.this);
 
 
-        if(myBluetoothAdapter.isEnabled()){
-            Bluetooth_Btn.setText("Bluetooth : ON");
-            Bluetooth_Btn.setBackgroundColor(Color.GREEN);
-        }
 
         Bluetooth_Btn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -515,6 +558,7 @@ public class MainActivity extends AppCompatActivity{
                 }
                 else{
                     TurnOff();
+                    TurnOn();
                 }
             }
         });
@@ -551,8 +595,8 @@ public class MainActivity extends AppCompatActivity{
 
 
     public void TurnOn(){
-        Bluetooth_Btn.setText("Bluetooth : ON");
-        Bluetooth_Btn.setBackgroundColor(Color.GREEN);
+        //Bluetooth_Btn.setText("Bluetooth : ON");
+        //Bluetooth_Btn.setBackgroundColor(Color.GREEN);
 
         if(myBluetoothAdapter == null){
             Log.d(TAG, "Phone does not have bluetooth capabilities");
@@ -574,18 +618,44 @@ public class MainActivity extends AppCompatActivity{
     }
 
     public void TurnOff(){
-        Bluetooth_Btn.setText("Bluetooth : OFF");
-        Bluetooth_Btn.setBackgroundColor(Color.RED);
+        //Bluetooth_Btn.setText("Bluetooth : OFF");
+        //Bluetooth_Btn.setBackgroundColor(Color.RED);
 
         if(myBluetoothAdapter.isDiscovering()){myBluetoothAdapter.cancelDiscovery();}
         if(myBluetoothAdapter.isEnabled()){myBluetoothAdapter.disable();}
 
     }
 
-    public void alarmFunction(){
-        if(!mConnected && lastMsg.equals('Y')){
-            startService(new Intent(this, AlarmService.class));
+    private class ServiceHandler /** Whichever class you extend */ {
+        public void run() {
+            MainActivity.this.runOnUiThread(new Runnable() {
+
+                @Override
+                public void run() {
+                    alarmFunction();
+                }
+
+            });
         }
+    }
+
+    public void alarmFunction(){
+
+        if(!mConnected){
+            if(lastMsg.equals('Y')){
+                startService(new Intent(this, AlarmService.class));
+                PleaseRet_txtView.setVisibility(View.VISIBLE);
+            }
+            IsConnected_txtView.setText("Disconnected");
+            Reconnect.setVisibility(View.VISIBLE);
+            PairedTo_txtView.setVisibility(View.INVISIBLE);
+        }
+
+    }
+
+    public void fullTimeout(){
+
+        setContentView(R.layout.activity_main1);
     }
 
 
