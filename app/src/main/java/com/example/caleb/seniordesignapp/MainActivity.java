@@ -144,6 +144,34 @@ public class MainActivity extends AppCompatActivity{
                 PleaseRet_txtView.setVisibility(View.INVISIBLE);
                 IsConnected_txtView.setText("Connected");
 
+                Reconnect.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Log.d(TAG, "btnDiscover: Looking for unpaired devices.");
+
+                        if(myBluetoothAdapter.isDiscovering()){
+                            myBluetoothAdapter.cancelDiscovery();
+                            Log.d(TAG, "btnDiscover: Canceling discovery.");
+
+                            //check BT permissions in manifest
+                            checkBTPermissions();
+
+                            myBluetoothAdapter.startDiscovery();
+                            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+                        }
+                        if(!myBluetoothAdapter.isDiscovering()){
+
+                            //check BT permissions in manifest
+                            checkBTPermissions();
+
+                            myBluetoothAdapter.startDiscovery();
+                            IntentFilter discoverDevicesIntent = new IntentFilter(BluetoothDevice.ACTION_FOUND);
+                            registerReceiver(mBroadcastReceiver3, discoverDevicesIntent);
+                        }
+                    }
+                });
+
                 mConnected = true;
                 updateConnectionState("Connected");
 
